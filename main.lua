@@ -31,7 +31,9 @@ function love.load()
     sounds = {
         ['paddle_hit'] = love.audio.newSource('sounds/paddle_hit.wav', 'static'),
         ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
-        ['wall_hit'] = love.audio.newSource('sounds/wall_hit.wav', 'static')
+        ['wall_hit'] = love.audio.newSource('sounds/wall_hit.wav', 'static'),
+        ['pause'] = love.audio.newSource('sounds/pause.wav', 'static'),
+        ['unpause'] = love.audio.newSource('sounds/unpause.wav', 'static')
     }
     
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
@@ -53,6 +55,7 @@ function love.load()
 
     winningPlayer = 0
 
+    -- initiate game state
     gameState = 'start'
 end
 
@@ -149,24 +152,26 @@ function love.update(dt)
     end
 
     --
-    -- paddles can move no matter state
+    -- paddles should not be able to move in a pause state
     --
-    -- player 1
-    if love.keyboard.isDown('w') then
-        player1.dy = -PADDLE_SPEED
-    elseif love.keyboard.isDown('s') then
-        player1.dy = PADDLE_SPEED
-    else
-        player1.dy = 0
-    end
+    if gameState ~= "pause" then
+        -- player 1
+        if love.keyboard.isDown('w') then
+            player1.dy = -PADDLE_SPEED
+        elseif love.keyboard.isDown('s') then
+            player1.dy = PADDLE_SPEED
+        else
+            player1.dy = 0
+        end
 
-    -- player 2
-    if love.keyboard.isDown('up') then
-        player2.dy = -PADDLE_SPEED
-    elseif love.keyboard.isDown('down') then
-        player2.dy = PADDLE_SPEED
-    else
-        player2.dy = 0
+        -- player 2
+        if love.keyboard.isDown('up') then
+            player2.dy = -PADDLE_SPEED
+        elseif love.keyboard.isDown('down') then
+            player2.dy = PADDLE_SPEED
+        else
+            player2.dy = 0
+        end
     end
 
     -- update the ball based on its DX and DY only if in play state;
@@ -206,6 +211,31 @@ function love.keypressed(key)
                 servingPlayer = 1
             end
         end
+    
+    elseif key == 'space' then
+        -- switch game state between pause and play 
+        if gameState == 'play' then
+            gameState = 'pause'
+            -- saves the ball's current dx and dy
+            -- then sets those values to 0
+            unpausedDx = ball.dx
+            unpausedDy = ball.dy
+            ball.dx = 0
+            ball.dy = 0
+            -- sets each players dy to 0 so paddles won't
+            -- continue moving on pause
+            player1.dy = 0
+            player2.dy = 0
+            -- play the pause sound
+            sounds['pause']:play()
+        elseif gameState == 'pause' then
+            gameState = 'play'
+            -- restore the ball's velocity to unpaused conditions
+            ball.dx = unpausedDx
+            ball.dy = unpausedDy
+            --play the unpause sound
+            sounds['unpause']:play()
+        end
     end
 end
 
@@ -229,6 +259,10 @@ function love.draw()
         love.graphics.printf('Press Enter to serve!', 0, 20, VIRTUAL_WIDTH, 'center')
     elseif gameState == 'play' then
         -- no UI messages to display in play
+    elseif gameState == 'pause' then
+        -- UI messages
+        love.graphics.setFont(largeFont)
+        love.graphics.printf('Paused', 0, 10, VIRTUAL_WIDTH, 'center')
     elseif gameState == 'done' then
         -- UI messages
         love.graphics.setFont(largeFont)
