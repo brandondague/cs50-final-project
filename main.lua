@@ -33,7 +33,9 @@ function love.load()
         ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
         ['wall_hit'] = love.audio.newSource('sounds/wall_hit.wav', 'static'),
         ['pause'] = love.audio.newSource('sounds/pause.wav', 'static'),
-        ['unpause'] = love.audio.newSource('sounds/unpause.wav', 'static')
+        ['unpause'] = love.audio.newSource('sounds/unpause.wav', 'static'),
+        ['player_select'] = love.audio.newSource('sounds/player_select.wav', 'static'),
+        ['start_game'] = love.audio.newSource('sounds/start_game.wav', 'static')
     }
     
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
@@ -43,8 +45,10 @@ function love.load()
         canvas = false
     })
 
+    numberOfPlayers = 1
+
     player1 = Paddle(10, 30, 5, 20)
-    player2 = Paddle(VIRTUAL_WIDTH - 10, VIRTUAL_HEIGHT - 30, 5, 20)
+    player2 = Paddle(VIRTUAL_WIDTH - 15, VIRTUAL_HEIGHT - 30, 5, 20)
 
     ball = Ball(VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
 
@@ -152,9 +156,9 @@ function love.update(dt)
     end
 
     --
-    -- paddles should not be able to move in a pause state
+    -- paddles should not be able to move in a non playing state
     --
-    if gameState ~= "pause" then
+    if gameState == "play" then
         -- player 1
         if love.keyboard.isDown('w') then
             player1.dy = -PADDLE_SPEED
@@ -165,12 +169,26 @@ function love.update(dt)
         end
 
         -- player 2
-        if love.keyboard.isDown('up') then
-            player2.dy = -PADDLE_SPEED
-        elseif love.keyboard.isDown('down') then
-            player2.dy = PADDLE_SPEED
+        if numberOfPlayers == 1 then
+            if ball.dx > 0 then
+                if ball.y < (player2.y + player2.height / 2) then
+                    player2.dy = -PADDLE_SPEED
+                elseif ball.y > (player2.y + player2.height / 2) then
+                    player2.dy = PADDLE_SPEED
+                else
+                    player2.dy = 0
+                end
+            else
+                player2.dy = 0
+            end
         else
-            player2.dy = 0
+            if love.keyboard.isDown('up') then
+                player2.dy = -PADDLE_SPEED
+            elseif love.keyboard.isDown('down') then
+                player2.dy = PADDLE_SPEED
+            else
+                player2.dy = 0
+            end
         end
     end
 
@@ -180,16 +198,27 @@ function love.update(dt)
         ball:update(dt)
     end
 
-    player1:update(dt)
-    player2:update(dt)
+    if gameState == 'play' then
+        player1:update(dt)
+        player2:update(dt)
+    end
 end
 
 function love.keypressed(key)
     if key == 'escape' then
         love.event.quit()
 
+    elseif gameState == 'start' and numberOfPlayers == 1 and key == 'right' then
+        numberOfPlayers = 2
+        sounds['player_select']:play()
+
+    elseif gameState == 'start' and numberOfPlayers == 2 and key == 'left' then
+        numberOfPlayers = 1
+        sounds['player_select']:play()
+
     elseif key == 'enter' or key == 'return' then
         if gameState == 'start' then
+            sounds['start_game']:play()
             gameState = 'serve'
         elseif gameState == 'serve' then
             gameState = 'play'
@@ -248,9 +277,18 @@ function love.draw()
     -- render different things depending on which part of the game we're in
     if gameState == 'start' then
         -- UI messages
-        love.graphics.setFont(smallFont)
+        love.graphics.setFont(largeFont)
         love.graphics.printf('Welcome to Pong!', 0, 10, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press Enter to begin!', 0, 20, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Select the number of players.', 0, 30, VIRTUAL_WIDTH, 'center')
+        if numberOfPlayers == 1 then
+            love.graphics.rectangle('fill', VIRTUAL_WIDTH / 2 - 95, VIRTUAL_HEIGHT / 2 - 8, 80, 30)
+            love.graphics.printf({{40/255, 45/255, 52/255, 255/255}, '1-PLAYER'}, VIRTUAL_WIDTH / 2 - 90, VIRTUAL_HEIGHT / 2, VIRTUAL_WIDTH)
+            love.graphics.printf('2-PLAYER', VIRTUAL_WIDTH / 2 + 20, VIRTUAL_HEIGHT / 2, VIRTUAL_WIDTH)
+        else
+            love.graphics.rectangle('fill', VIRTUAL_WIDTH / 2 + 16, VIRTUAL_HEIGHT / 2 - 8, 80, 30)
+            love.graphics.printf('1-PLAYER', VIRTUAL_WIDTH / 2 - 90, VIRTUAL_HEIGHT / 2, VIRTUAL_WIDTH)
+            love.graphics.printf({{40/255, 45/255, 52/255, 255/255}, '2-PLAYER'}, VIRTUAL_WIDTH / 2 + 20, VIRTUAL_HEIGHT / 2, VIRTUAL_WIDTH)
+        end
     elseif gameState == 'serve' then
         -- UI messages
         love.graphics.setFont(smallFont)
@@ -273,14 +311,16 @@ function love.draw()
     end
 
     -- show the score before ball is rendered so it can move over the text
-    displayScore()
-    
-    player1:render()
-    player2:render()
-    ball:render()
+    if gameState ~= 'start' then
+        displayScore()
+        
+        player1:render()
+        player2:render()
+        ball:render()
+    end
 
     -- display FPS for debugging; comment out to remove
-    displayFPS()
+    -- displayFPS()
 
     -- end drawing to push
     push:finish()
