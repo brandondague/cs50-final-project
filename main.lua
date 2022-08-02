@@ -14,8 +14,8 @@ require 'states/DoneState'
 require 'Paddle'
 require 'Ball'
 
-WINDOW_WIDTH = 1920
-WINDOW_HEIGHT = 1080
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
 
 VIRTUAL_WIDTH = 432
 VIRTUAL_HEIGHT = 243
@@ -92,7 +92,7 @@ function love.draw()
 
     love.graphics.clear(40/255, 45/255, 52/255, 255/255)
     gStateMachine:render()
-    -- displayFPS()
+    displayFPS()
     
     push:finish()
 end

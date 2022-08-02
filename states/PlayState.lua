@@ -3,6 +3,7 @@ PlayState = Class{__includes = BaseState}
 PADDLE_SPEED = 200
 
 function PlayState:init()
+    self.aiCenterPaddleFlag = false
     self.timer = 0
     self.winningPlayer = 0
 end
@@ -129,16 +130,30 @@ function PlayState:update(dt)
     end
 
     if self.players == 1 then
+        if self.ball:collides(self.player2) then
+            self.aiCenterPaddleFlag = true
+        end
+
         if self.ball.dx > 0 and self.ball.x > VIRTUAL_WIDTH / 2 then
-            if self.ball.y < (self.player2.y + self.player2.height / 2) then
+            if self.ball.y < self.player2.y + self.player2.height / 2 - 2 then
                 self.player2.dy = -PADDLE_SPEED
-            elseif self.ball.y > (self.player2.y + self.player2.height / 2) then
+            elseif self.ball.y > self.player2.y + self.player2.height / 2 + 2 then
                 self.player2.dy = PADDLE_SPEED
             else
                 self.player2.dy = 0
             end
+        elseif self.aiCenterPaddleFlag then
+            if self.player2.y + self.player2.height / 2 >= VIRTUAL_HEIGHT / 2 - 2 and self.player2.y + self.player2.height / 2 <= VIRTUAL_HEIGHT / 2 + 2 then
+                self.player2.dy = 0
+                self.aiCenterPaddleFlag = false
+                self.timer = 0
+            elseif self.player2.y + self.player2.height / 2 > VIRTUAL_HEIGHT / 2 then
+                self.player2.dy = -PADDLE_SPEED
+            elseif self.player2.y + self.player2.height / 2 < VIRTUAL_HEIGHT / 2 then
+                self.player2.dy = PADDLE_SPEED
+            end
         else
-            if self.timer > 1 then
+            if self.timer >= 1 then
                 randomNumber = math.random(1, 3)
                 if randomNumber == 1 then
                     self.player2.dy = -PADDLE_SPEED / 3
