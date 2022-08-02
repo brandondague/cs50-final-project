@@ -3,6 +3,7 @@ PlayState = Class{__includes = BaseState}
 PADDLE_SPEED = 200
 
 function PlayState:init()
+    self.timer = 0
     self.winningPlayer = 0
 end
 
@@ -17,6 +18,8 @@ function PlayState:enter(params)
 end
 
 function PlayState:update(dt)
+    self.timer = self.timer + dt
+
     if self.ball:collides(self.player1) then
         self.ball.dx = -self.ball.dx * 1.03
         self.ball.x = self.player1.x + 5
@@ -135,7 +138,17 @@ function PlayState:update(dt)
                 self.player2.dy = 0
             end
         else
-            self.player2.dy = 0
+            if self.timer > 1 then
+                randomNumber = math.random(1, 3)
+                if randomNumber == 1 then
+                    self.player2.dy = -PADDLE_SPEED / 3
+                elseif randomNumber == 2 then
+                    self.player2.dy = PADDLE_SPEED / 3
+                elseif randomNumber == 3 then
+                    self.player2.dy = 0
+                end
+                self.timer = 0
+            end
         end
     else
         if love.keyboard.isDown('up') then
